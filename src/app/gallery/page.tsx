@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Icon from "@/components/Icon";
 import { GALLERY_PUZZLES } from "@/lib/puzzles";
 
 const CATEGORIES = [
@@ -64,14 +65,14 @@ export default function GalleryPage() {
             {/* Search Bar & Sort Dropdown */}
             <div className="flex items-center gap-3 w-full md:w-auto">
               <div className="relative flex-1 md:w-72">
-                <svg
+                <Icon
                   className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                </Icon>
                 <input
                   type="text"
                   value={searchQuery}

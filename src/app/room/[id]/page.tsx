@@ -2,21 +2,21 @@
 
 import { useState, useEffect, useRef, use } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { GALLERY_PUZZLES } from "@/lib/puzzles";
 import { Puzzle, Player, PieceState, ChatMessage } from "@/lib/types";
+import RetroWindow from "@/components/RetroWindow";
+import Icon from "@/components/Icon";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
 export default function RoomPage({ params }: PageProps) {
-  const router = useRouter();
   const resolvedParams = use(params);
   const roomId = resolvedParams.id;
 
-  // Board and piece config
-  const [puzzle, setPuzzle] = useState<Puzzle>(GALLERY_PUZZLES[0]);
+  // Board and piece config - initialize to null for SSR hydration safety
+  const [puzzle, setPuzzle] = useState<Puzzle | null>(null);
   const [pieces, setPieces] = useState<PieceState[]>([]);
   const [isGuideVisible, setIsGuideVisible] = useState(true);
   const [edgeOnly, setEdgeOnly] = useState(false);
@@ -53,7 +53,7 @@ export default function RoomPage({ params }: PageProps) {
 
   // Active players
   const players: Player[] = [
-    { id: "1", name: "You", avatarText: "YOU", color: "bg-pink-500", isHost: false },
+    { id: "1", name: "You", avatarText: "YOU", color: "bg-pink-500" },
     { id: "2", name: "Ax", avatarText: "AX", color: "bg-emerald-500" },
     { id: "3", name: "Mochi", avatarText: "MC", color: "bg-blue-500" },
   ];
@@ -61,7 +61,7 @@ export default function RoomPage({ params }: PageProps) {
   // Initialize puzzle
   useEffect(() => {
     // Check if custom puzzle in sessionStorage
-    const customData = sessionStorage.getItem(`love_puzzle_${roomId}`);
+    const customData = typeof window !== "undefined" ? sessionStorage.getItem(`love_puzzle_${roomId}`) : null;
     let selected: Puzzle;
 
     if (customData) {
@@ -86,10 +86,10 @@ export default function RoomPage({ params }: PageProps) {
       selected = GALLERY_PUZZLES.find((p) => p.id === roomId) || GALLERY_PUZZLES[0];
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPuzzle(selected);
 
     // Generate puzzle pieces
-    const totalPieces = selected.rows * selected.cols;
     const initialPieces: PieceState[] = [];
 
     // Board container dimensions (540 x 360)
@@ -140,13 +140,8 @@ export default function RoomPage({ params }: PageProps) {
   }, [isVictoryOpen]);
 
   // Format timer MM:SS
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60)
-      .toString()
-      .padStart(2, "0");
-    const s = (secs % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-  };
+  const formatTime = (secs: number) =>
+    new Date(secs * 1000).toISOString().slice(14, 19);
 
   // Calculate progress
   const lockedCount = pieces.filter((p) => p.isLocked).length;
@@ -303,6 +298,23 @@ export default function RoomPage({ params }: PageProps) {
     }, 1500);
   };
 
+  // Loading skeleton during SSR and client initial mount to eliminate hydration mismatch
+  if (!puzzle) {
+    return (
+      <div className="min-h-screen bg-[#120D18] text-purple-100 font-mono flex flex-col items-center justify-center p-4">
+        <div className="p-8 bg-[#1B1424] border border-purple-800/60 rounded-2xl shadow-xl flex flex-col items-center gap-4 text-center max-w-sm w-full">
+          <div className="text-xs font-bold text-[#FF4D8D] tracking-widest animate-pulse">
+            LOADING PUZZLE ROOM...
+          </div>
+          <div className="w-48 h-3 bg-[#120D18] rounded-full overflow-hidden border border-purple-800/60">
+            <div className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full animate-pulse w-3/4" />
+          </div>
+          <span className="text-[10px] text-purple-400">INITIALIZING BOARD MESH...</span>
+        </div>
+      </div>
+    );
+  }
+
   const boardW = 540;
   const boardH = 360;
   const pieceW = boardW / puzzle.cols;
@@ -322,9 +334,9 @@ export default function RoomPage({ params }: PageProps) {
             href="/rooms"
             className="p-2 rounded-xl bg-purple-900/40 hover:bg-pink-500 hover:text-white transition-colors text-purple-300 flex items-center gap-1.5 font-mono text-xs"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Icon className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            </Icon>
             <span>LOBBY</span>
           </Link>
 
@@ -345,9 +357,9 @@ export default function RoomPage({ params }: PageProps) {
         <div className="flex items-center gap-6">
           {/* Live Timer */}
           <div className="bg-black/40 border border-purple-800/60 rounded-xl px-3 py-1 flex items-center gap-2 font-mono text-xs text-pink-400">
-            <svg className="w-4 h-4 animate-spin text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Icon className="w-4 h-4 animate-spin text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            </Icon>
             <span className="font-bold">{formatTime(elapsedSeconds)}</span>
           </div>
 
@@ -391,9 +403,9 @@ export default function RoomPage({ params }: PageProps) {
             onClick={handleInvite}
             className="btn-retro-pink font-mono font-bold text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Icon className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
+            </Icon>
             <span>{inviteCopied ? "COPIED! ♥" : "INVITE"}</span>
           </button>
         </div>
@@ -495,9 +507,9 @@ export default function RoomPage({ params }: PageProps) {
             className="p-2 rounded-xl bg-purple-900/40 hover:bg-pink-500 hover:text-white transition-colors text-purple-300 cursor-pointer"
             title="Zoom In"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Icon className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
-            </svg>
+            </Icon>
           </button>
 
           {/* Zoom Out */}
@@ -506,9 +518,9 @@ export default function RoomPage({ params }: PageProps) {
             className="p-2 rounded-xl bg-purple-900/40 hover:bg-pink-500 hover:text-white transition-colors text-purple-300 cursor-pointer"
             title="Zoom Out"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Icon className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
-            </svg>
+            </Icon>
           </button>
 
           <div className="h-6 w-px bg-purple-800"></div>
@@ -523,10 +535,10 @@ export default function RoomPage({ params }: PageProps) {
             }`}
             title="Toggle Guide Image"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Icon className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
+            </Icon>
           </button>
 
           {/* Edge Pieces Only */}
@@ -539,9 +551,9 @@ export default function RoomPage({ params }: PageProps) {
             }`}
             title="Filter Edge Pieces"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Icon className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+            </Icon>
           </button>
 
           {/* Quick Solve Helper */}
@@ -620,90 +632,73 @@ export default function RoomPage({ params }: PageProps) {
       </main>
 
       {/* Signature Retro Window Victory Popup Modal from Canvas */}
-      {isVictoryOpen && (
-        <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-[#D4D0C8] border-2 border-white rounded-lg shadow-[8px_8px_0_0_rgba(0,0,0,0.5)] overflow-hidden font-mono win95-outset">
-            {/* Retro Blue Title Bar */}
-            <div className="bg-gradient-to-r from-[#1C5FCC] to-[#2E6FE0] px-3 py-1.5 flex items-center justify-between text-white border-b-2 border-[#1448A0]">
-              <div className="flex items-center gap-2">
-                <svg className="w-4 h-4 fill-current text-pink-300" viewBox="0 0 24 24">
-                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                </svg>
-                <span className="text-xs font-bold tracking-widest uppercase">PUZZLE COMPLETED!</span>
-              </div>
-              <button
-                onClick={() => setIsVictoryOpen(false)}
-                className="w-5 h-5 bg-[#E63946] hover:bg-rose-500 border border-white text-white flex items-center justify-center text-xs font-black shadow-xs leading-none cursor-pointer"
-              >
-                ×
-              </button>
+      <RetroWindow
+        title="PUZZLE COMPLETED!"
+        isOpen={isVictoryOpen}
+        onClose={() => setIsVictoryOpen(false)}
+      >
+        <div className="space-y-6">
+          {/* Victory Banner & Pixel Cat Mascot */}
+          <div className="flex items-center gap-4 bg-purple-100 p-4 rounded-xl border border-purple-300">
+            <div className="w-16 h-16 rounded-xl bg-pink-500/20 text-pink-500 border-2 border-pink-500/40 flex flex-col items-center justify-center p-1 flex-shrink-0 animate-bounce">
+              <Icon className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+              </Icon>
+              <span className="text-[8px] font-bold">PIXEL CAT</span>
             </div>
-
-            {/* Retro Modal Body Content */}
-            <div className="p-6 text-slate-900 space-y-6">
-              {/* Victory Banner & Pixel Cat Mascot */}
-              <div className="flex items-center gap-4 bg-purple-100 p-4 rounded-xl border border-purple-300">
-                <div className="w-16 h-16 rounded-xl bg-pink-500/20 text-pink-500 border-2 border-pink-500/40 flex flex-col items-center justify-center p-1 flex-shrink-0 animate-bounce">
-                  <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                  </svg>
-                  <span className="text-[8px] font-bold">PIXEL CAT</span>
-                </div>
-                <div>
-                  <span className="text-xs text-pink-600 font-bold uppercase tracking-wider">
-                    🎉 CONGRATULATIONS!
-                  </span>
-                  <h3 className="text-base font-extrabold text-slate-900 leading-tight">
-                    YOU & CO-OP TEAM SOLVED IT!
-                  </h3>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Completion time:{" "}
-                    <span className="text-emerald-700 font-bold">
-                      {formatTime(elapsedSeconds)}
-                    </span>{" "}
-                    (New Room Record!)
-                  </p>
-                </div>
-              </div>
-
-              {/* Retro Stats Box (Inset Bevel Style) */}
-              <div className="bg-white p-4 rounded win95-inset space-y-2 text-xs">
-                <div className="flex items-center justify-between border-b border-purple-100 pb-1.5">
-                  <span className="text-slate-600">Total Pieces:</span>
-                  <span className="font-bold text-slate-900">
-                    {pieces.length} / {pieces.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between border-b border-purple-100 pb-1.5">
-                  <span className="text-slate-600">Active Players:</span>
-                  <span className="font-bold text-pink-600">3 Players</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-600">Score Bonus:</span>
-                  <span className="font-bold text-emerald-700">+1,450 XP</span>
-                </div>
-              </div>
-
-              {/* Retro Windows 95 Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  onClick={handleResetPuzzle}
-                  className="win95-btn text-slate-900 text-xs font-bold px-4 py-2 cursor-pointer"
-                >
-                  [ Replay Puzzle ]
-                </button>
-
-                <button
-                  onClick={() => router.push("/gallery")}
-                  className="btn-retro-pink text-white text-xs font-bold px-5 py-2 rounded shadow-md cursor-pointer"
-                >
-                  [ Next Puzzle → ]
-                </button>
-              </div>
+            <div>
+              <span className="text-xs text-pink-600 font-bold uppercase tracking-wider">
+                🎉 CONGRATULATIONS!
+              </span>
+              <h3 className="text-base font-extrabold text-slate-900 leading-tight">
+                YOU & CO-OP TEAM SOLVED IT!
+              </h3>
+              <p className="text-xs text-slate-600 mt-1">
+                Completion time:{" "}
+                <span className="text-emerald-700 font-bold">
+                  {formatTime(elapsedSeconds)}
+                </span>{" "}
+                (New Room Record!)
+              </p>
             </div>
           </div>
+
+          {/* Retro Stats Box (Inset Bevel Style) */}
+          <div className="bg-white p-4 rounded win95-inset space-y-2 text-xs">
+            <div className="flex items-center justify-between border-b border-purple-100 pb-1.5">
+              <span className="text-slate-600">Total Pieces:</span>
+              <span className="font-bold text-slate-900">
+                {pieces.length} / {pieces.length}
+              </span>
+            </div>
+            <div className="flex items-center justify-between border-b border-purple-100 pb-1.5">
+              <span className="text-slate-600">Active Players:</span>
+              <span className="font-bold text-pink-600">3 Players</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-600">Score Bonus:</span>
+              <span className="font-bold text-emerald-700">+1,450 XP</span>
+            </div>
+          </div>
+
+          {/* Retro Windows 95 Action Buttons */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={handleResetPuzzle}
+              className="win95-btn text-slate-900 text-xs font-bold px-4 py-2 cursor-pointer"
+            >
+              [ Replay Puzzle ]
+            </button>
+
+            <Link
+              href="/gallery"
+              className="btn-retro-pink text-white text-xs font-bold px-5 py-2 rounded shadow-md cursor-pointer inline-block text-center"
+            >
+              [ Next Puzzle → ]
+            </Link>
+          </div>
         </div>
-      )}
+      </RetroWindow>
     </div>
   );
 }

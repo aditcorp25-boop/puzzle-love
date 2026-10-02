@@ -16,6 +16,5 @@
 import type { SVGProps } from "react";
 
 export default function Icon(props: SVGProps<SVGSVGElement>) {
-  // eslint-disable-next-line react/no-danger-with-children -- intentional passthrough
   return <svg {...props} suppressHydrationWarning />;
 }

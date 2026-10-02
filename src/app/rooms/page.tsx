@@ -4,21 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Icon from "@/components/Icon";
 import { GALLERY_PUZZLES } from "@/lib/puzzles";
 
-interface MockRoom {
-  id: string;
-  name: string;
-  puzzleTitle: string;
-  pieces: number;
-  playersCount: number;
-  maxPlayers: number;
-  progress: number;
-  host: string;
-  imageUrl: string;
-}
-
-const INITIAL_ROOMS: MockRoom[] = [
+const INITIAL_ROOMS = [
   {
     id: "cozy-cottage",
     name: "Cozy Stream Sunday Chill",
@@ -66,10 +55,9 @@ const INITIAL_ROOMS: MockRoom[] = [
 ];
 
 export default function RoomsPage() {
-  const [rooms] = useState<MockRoom[]>(INITIAL_ROOMS);
   const [filter, setFilter] = useState<"all" | "open" | "nearly-done">("all");
 
-  const filteredRooms = rooms.filter((room) => {
+  const filteredRooms = INITIAL_ROOMS.filter((room) => {
     if (filter === "open") return room.playersCount < room.maxPlayers;
     if (filter === "nearly-done") return room.progress >= 70;
     return true;
@@ -98,9 +86,9 @@ export default function RoomsPage() {
               href="/custom"
               className="btn-retro-pink font-mono font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm"
             >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <Icon className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-              </svg>
+              </Icon>
               <span>HOST NEW ROOM</span>
             </Link>
           </div>
@@ -116,7 +104,7 @@ export default function RoomsPage() {
                 : "bg-[#241B2D] border border-purple-800 text-purple-300 hover:border-pink-500"
             }`}
           >
-            All Lobbies ({rooms.length})
+            All Lobbies ({INITIAL_ROOMS.length})
           </button>
           <button
             onClick={() => setFilter("open")}
@@ -201,9 +189,9 @@ export default function RoomsPage() {
                       className="btn-retro-pink font-mono font-bold text-xs px-4 py-1.5 rounded-lg flex items-center gap-1.5"
                     >
                       <span>JOIN ROOM</span>
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <Icon className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                      </svg>
+                      </Icon>
                     </Link>
                   </div>
                 </div>
