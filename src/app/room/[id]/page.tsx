@@ -50,6 +50,8 @@ export default function RoomPage({ params }: PageProps) {
   const [inputChat, setInputChat] = useState("");
 
   const boardRef = useRef<HTMLDivElement>(null);
+  // ponytail: cache rect on dragstart to avoid forced reflow on every mousemove
+  const boardRectRef = useRef<DOMRect | null>(null);
 
   // Active players
   const players: Player[] = [
@@ -168,6 +170,7 @@ export default function RoomPage({ params }: PageProps) {
     const board = boardRef.current;
     if (!board) return;
     const rect = board.getBoundingClientRect();
+    boardRectRef.current = rect; // cache for mousemove
 
     setActivePieceId(piece.id);
     setDragOffset({
@@ -178,9 +181,8 @@ export default function RoomPage({ params }: PageProps) {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (activePieceId === null) return;
-    const board = boardRef.current;
-    if (!board) return;
-    const rect = board.getBoundingClientRect();
+    const rect = boardRectRef.current;
+    if (!rect) return;
 
     const newX = e.clientX - rect.left - dragOffset.x;
     const newY = e.clientY - rect.top - dragOffset.y;
@@ -192,6 +194,7 @@ export default function RoomPage({ params }: PageProps) {
 
   const handleMouseUp = () => {
     if (activePieceId === null) return;
+    boardRectRef.current = null; // clear cached rect
 
     // Check snap distance
     setPieces((prev) =>

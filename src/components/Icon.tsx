@@ -15,26 +15,8 @@
  *     <path ... />
  *   </Icon>
  */
-import { Children, cloneElement, isValidElement } from "react";
-import type { ReactElement, ReactNode, SVGProps } from "react";
+import type { SVGProps } from "react";
 
-function suppressChildren(children: ReactNode): ReactNode {
-  return Children.map(children, (child) => {
-    if (!isValidElement(child)) return child;
-    const el = child as ReactElement<{ children?: ReactNode; suppressHydrationWarning?: boolean }>;
-    return cloneElement(el, {
-      suppressHydrationWarning: true,
-      ...(el.props.children
-        ? { children: suppressChildren(el.props.children) }
-        : {}),
-    });
-  });
-}
-
-export default function Icon({ children, ...props }: SVGProps<SVGSVGElement>) {
-  return (
-    <svg {...props} suppressHydrationWarning>
-      {suppressChildren(children)}
-    </svg>
-  );
+export default function Icon(props: SVGProps<SVGSVGElement>) {
+  return <svg {...props} suppressHydrationWarning />;
 }
